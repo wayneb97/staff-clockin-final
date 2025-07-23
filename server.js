@@ -132,6 +132,11 @@ app.get('/api/admin/logs', (req, res) => {
   res.json(logs);
 });
 
+app.get('/api/admin/logs', (req, res) => {
+  const logs = load(LOGS_FILE);
+  res.json(logs);
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
