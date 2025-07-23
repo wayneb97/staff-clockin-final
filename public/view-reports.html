@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Reports</title>
+  <title>View Reports</title>
   <style>
     body {
       background: #121212;
@@ -9,14 +9,11 @@
       font-family: 'Segoe UI', sans-serif;
       padding: 20px;
     }
-    h2 {
+    h2, h3 {
       text-align: center;
     }
-    label {
-      margin: 0 10px;
-    }
     input[type="date"], input[type="number"] {
-      padding: 8px;
+      padding: 10px;
       margin: 10px;
       background: #1c1c1c;
       color: #00ffe7;
@@ -33,105 +30,144 @@
       margin: 10px;
       cursor: pointer;
     }
+    .report-block {
+      background: #1a1a1a;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px #00ffe7;
+    }
     table {
       width: 100%;
-      margin-top: 20px;
+      margin-top: 10px;
       border-collapse: collapse;
     }
     th, td {
-      padding: 10px;
-      border-bottom: 1px solid #333;
+      padding: 8px;
+      border-bottom: 1px solid #444;
       text-align: left;
     }
-    .back-btn {
-      margin-top: 20px;
-      background: transparent;
+    .toggle-details {
+      cursor: pointer;
       color: #00ffe7;
       text-decoration: underline;
+    }
+    .details {
+      display: none;
+      margin-top: 10px;
+    }
+    .back-btn {
+      margin-top: 30px;
+      background: transparent;
+      color: #00ffe7;
       border: none;
+      text-decoration: underline;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h2>Reports & Labour Summary</h2>
-  
-  <label>Start Date:</label>
+  <h2>Reports & Payroll Summary</h2>
+
+  <label>Start:</label>
   <input type="date" id="start">
-  
-  <label>End Date:</label>
+  <label>End:</label>
   <input type="date" id="end">
-  
   <button onclick="loadReports()">View Reports</button>
 
-  <div id="reportContainer"></div>
+  <div id="reports"></div>
 
-  <button class="back-btn" onclick="window.location.href='admin.html'">← Back to Dashboard</button>
+  <button class="back-btn" onclick="location.href='admin.html'">← Back to Dashboard</button>
 
   <script>
     async function loadReports() {
       const start = document.getElementById('start').value;
       const end = document.getElementById('end').value;
-      if (!start || !end) return alert("Select both dates.");
+      if (!start || !end) return alert("Select start and end date");
 
-      const res = await fetch('/api/admin/logs');
-      const logs = await res.json();
-      const settings = await fetch('/api/admin/settings').then(r => r.json());
-      const staff = await fetch('/api/admin/staff').then(r => r.json());
+      const [logs, staff, settings] = await Promise.all([
+        fetch('/api/admin/logs').then(r => r.json()),
+        fetch('/api/admin/staff').then(r => r.json()),
+        fetch('/api/admin/settings').then(r => r.json())
+      ]);
 
-      const range = logs.filter(l => l.date >= start && l.date <= end && l.clockIn && l.clockOut);
+      const filtered = logs.filter(l =>
+        l.date >= start && l.date <= end &&
+        l.clockIn && l.clockOut
+      );
 
-      const days = {};
-      for (const log of range) {
-        const date = log.date;
-        const duration = (new Date(log.clockOut) - new Date(log.clockIn)) / (1000 * 60 * 60); // in hours
-        if (!days[date]) days[date] = [];
-        days[date].push({
-          pin: log.pin,
-          name: log.name,
-          hours: duration,
-        });
+      const grouped = {};
+      for (const log of filtered) {
+        const day = log.date;
+        if (!grouped[day]) grouped[day] = [];
+        grouped[day].push(log);
       }
 
-      const container = document.getElementById('reportContainer');
+      const container = document.getElementById('reports');
       container.innerHTML = '';
 
-      Object.entries(days).forEach(([date, entries]) => {
-        let totalHours = 0;
-        let totalPay = 0;
-        const rows = entries.map(entry => {
-          const user = staff.find(s => s.pin === entry.pin);
-          const wage = user?.wage || 0;
-          const pay = entry.hours * wage;
-          totalHours += entry.hours;
-          totalPay += pay;
-          return `<tr><td>${entry.name}</td><td>${entry.hours.toFixed(2)} hrs</td><td>£${pay.toFixed(2)}</td></tr>`;
-        }).join('');
+      Object.entries(grouped).sort().forEach(([date, logs]) => {
+        let totalHours = 0, totalWages = 0;
+        let detailsRows = '';
+
+        logs.forEach(log => {
+          const staffData = staff.find(s => s.pin === log.pin);
+          const wage = staffData?.wage || 0;
+          const clockIn = new Date(log.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const clockOut = new Date(log.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const duration = (new Date(log.clockOut) - new Date(log.clockIn)) / 3600000;
+          const pay = duration * wage;
+
+          totalHours += duration;
+          totalWages += pay;
+
+          detailsRows += `
+            <tr>
+              <td>${log.name}</td>
+              <td>${clockIn}</td>
+              <td>${clockOut}</td>
+              <td>${duration.toFixed(2)} hrs</td>
+              <td>£${pay.toFixed(2)}</td>
+            </tr>
+          `;
+        });
 
         const takings = settings?.takings?.[date] || 0;
-        const labourPct = takings ? ((totalPay / takings) * 100).toFixed(1) : '—';
+        const labourPct = takings ? ((totalWages / takings) * 100).toFixed(1) : '—';
 
         container.innerHTML += `
-          <h3>${date}</h3>
-          <p>Total Hours: ${totalHours.toFixed(2)} | Total Wages: £${totalPay.toFixed(2)} | Takings: £${takings} | Labour: ${labourPct}%</p>
-          <table>
-            <thead><tr><th>Staff</th><th>Hours</th><th>Wage</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <label>Enter Takings:</label>
-          <input type="number" min="0" id="takings-${date}" value="${takings}">
-          <button onclick="saveTakings('${date}')">Save</button>
-          <hr/>
+          <div class="report-block">
+            <h3>${date}</h3>
+            <p>Total Hours: ${totalHours.toFixed(2)} | Wages: £${totalWages.toFixed(2)} | Takings: £${takings} | Labour %: ${labourPct}%</p>
+
+            <label>Update Takings:</label>
+            <input type="number" id="takings-${date}" value="${takings}" min="0">
+            <button onclick="saveTakings('${date}')">Save</button>
+
+            <p class="toggle-details" onclick="toggleDetails('${date}')">Show/Hide Details</p>
+
+            <div class="details" id="details-${date}">
+              <table>
+                <thead><tr><th>Staff</th><th>In</th><th>Out</th><th>Hours</th><th>Pay</th></tr></thead>
+                <tbody>${detailsRows}</tbody>
+              </table>
+            </div>
+          </div>
         `;
       });
     }
 
+    function toggleDetails(date) {
+      const el = document.getElementById(`details-${date}`);
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
     async function saveTakings(date) {
-      const value = parseFloat(document.getElementById(`takings-${date}`).value);
+      const val = parseFloat(document.getElementById(`takings-${date}`).value);
       await fetch('/api/admin/takings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, amount: value })
+        body: JSON.stringify({ date, amount: val })
       });
       loadReports();
     }
