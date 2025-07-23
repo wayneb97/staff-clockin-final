@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clock-In Logs</title></head>
+<body>
+  <h2>Time Logs</h2>
+  <table border="1">
+    <thead>
+      <tr><th>Name</th><th>Date</th><th>Clock In</th><th>Clock Out</th></tr>
+    </thead>
+    <tbody id="logTable"></tbody>
+  </table>
+
+  <script>
+    async function loadLogs() {
+      const res = await fetch('/api/admin/logs');
+      const logs = await res.json();
+      const table = document.getElementById('logTable');
+      logs.forEach(l => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${l.name}</td><td>${l.date}</td><td>${l.clockIn ? new Date(l.clockIn).toLocaleTimeString() : '-'}</td><td>${l.clockOut ? new Date(l.clockOut).toLocaleTimeString() : '-'}</td>`;
+        table.appendChild(row);
+      });
+    }
+    loadLogs();
+  </script>
+</body>
+</html>
