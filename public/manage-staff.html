@@ -8,11 +8,12 @@
       color: #00ffe7;
       font-family: 'Segoe UI', sans-serif;
       padding: 20px;
-      max-width: 800px;
+      max-width: 900px;
       margin: auto;
     }
     h2 {
       text-align: center;
+      margin-bottom: 30px;
     }
     label, input, select {
       display: block;
@@ -48,6 +49,10 @@
       padding: 8px;
       text-align: left;
     }
+    tr:hover {
+      background: #1a1a1a;
+      cursor: pointer;
+    }
     .back-btn {
       margin-top: 20px;
       background: transparent;
@@ -62,6 +67,8 @@
   <h2>Manage Staff & Admins</h2>
 
   <form id="staffForm">
+    <input type="hidden" name="editingIndex" value="">
+    
     <label>Name:</label>
     <input type="text" name="name" required>
     
@@ -78,7 +85,7 @@
       <option value="main">Main Admin</option>
     </select>
 
-    <button type="submit">Save Staff</button>
+    <button type="submit">Save</button>
   </form>
 
   <table id="staffTable">
@@ -91,12 +98,14 @@
   <button class="back-btn" onclick="window.location.href='admin.html'">← Back to Dashboard</button>
 
   <script>
+    let staffList = [];
+
     async function loadStaff() {
       const res = await fetch('/api/admin/staff');
-      const staff = await res.json();
+      staffList = await res.json();
       const tbody = document.querySelector('#staffTable tbody');
       tbody.innerHTML = '';
-      staff.forEach(member => {
+      staffList.forEach((member, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${member.name}</td>
@@ -104,8 +113,20 @@
           <td>£${member.wage?.toFixed(2) || '0.00'}</td>
           <td>${member.role || 'staff'}</td>
         `;
+        row.onclick = () => editStaff(index);
         tbody.appendChild(row);
       });
+    }
+
+    function editStaff(index) {
+      const staff = staffList[index];
+      const form = document.getElementById('staffForm');
+      form.editingIndex.value = index;
+      form.name.value = staff.name;
+      form.pin.value = staff.pin;
+      form.wage.value = staff.wage;
+      form.role.value = staff.role || 'staff';
+      form.scrollIntoView({ behavior: 'smooth' });
     }
 
     document.getElementById('staffForm').addEventListener('submit', async (e) => {
@@ -117,11 +138,23 @@
         wage: parseFloat(form.wage.value),
         role: form.role.value
       };
-      await fetch('/api/admin/staff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+
+      const editingIndex = form.editingIndex.value;
+      if (editingIndex === "") {
+        await fetch('/api/admin/staff', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      } else {
+        data.index = parseInt(editingIndex);
+        await fetch('/api/admin/staff/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+
       form.reset();
       loadStaff();
     });
