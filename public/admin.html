@@ -35,9 +35,24 @@
   </style>
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
-  <button class="button" onclick="location.href='manage-staff.html'">Manage Staff</button>
-  <button class="button" onclick="location.href='view-reports.html'">View Reports</button>
-  <button class="button" onclick="location.href='index.html'">Log Out</button>
+  <h1 id="greeting">Admin Dashboard</h1>
+  <div id="buttons" style="display:none">
+    <button class="button" onclick="location.href='manage-staff.html'">Manage Staff</button>
+    <button class="button" onclick="location.href='view-reports.html'">View Reports</button>
+    <button class="button" onclick="logout()">Log Out</button>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('adminUser'));
+    if (!user) window.location.href = 'login.html';
+
+    document.getElementById('greeting').innerText = `Welcome, ${user.name || user.email}`;
+    document.getElementById('buttons').style.display = 'block';
+
+    function logout() {
+      localStorage.removeItem('adminUser');
+      window.location.href = 'login.html';
+    }
+  </script>
 </body>
 </html>
