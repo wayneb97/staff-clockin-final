@@ -1,22 +1,53 @@
 <!DOCTYPE html>
 <html>
-<head><title>Staff Clock</title></head>
+<head>
+  <title>Clock In / Out</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #00ffcc;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1.2em;
+      border-radius: 8px;
+      border: none;
+    }
+    input {
+      background: #1a1a1a;
+      color: #00ffcc;
+    }
+    button {
+      background: #00ffcc;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #00e6b8;
+    }
+  </style>
+</head>
 <body>
-  <h2>Enter PIN</h2>
-  <input id="pin" type="password" placeholder="Enter your PIN"><br>
-  <button onclick="clock('in')">Clock In</button>
-  <button onclick="clock('out')">Clock Out</button>
-  <p id="msg"></p>
+  <h2>Enter Your PIN</h2>
+  <input id="pin" type="password" maxlength="6" placeholder="4–6 Digit PIN">
+  <button onclick="next()">Continue</button>
+
   <script>
-    async function clock(type) {
-      const pin = document.getElementById('pin').value;
-      const endpoint = type === 'in' ? '/api/clockin' : '/api/clockout';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin })
-      });
-      document.getElementById('msg').innerText = await res.text();
+    function next() {
+      const pin = document.getElementById('pin').value.trim();
+      if (pin.length >= 4) {
+        window.location.href = `/status.html?pin=${pin}`;
+      } else {
+        alert("Enter a valid 4–6 digit PIN.");
+      }
     }
   </script>
 </body>
