@@ -95,6 +95,19 @@ app.get('/api/admin/staff', (req, res) => {
   res.json(staff);
 });
 
+app.post('/api/admin/staff/update', (req, res) => {
+  const staff = load(DATA_FILE);
+  const { index, name, pin, wage, role } = req.body;
+
+  if (staff[index]) {
+    staff[index] = { name, pin, wage, role };
+    save(DATA_FILE, staff);
+    res.json({ success: true });
+  } else {
+    res.status(400).json({ success: false, message: 'Staff not found' });
+  }
+});
+
 // Add a new staff
 app.post('/api/admin/staff', (req, res) => {
   const staff = load(DATA_FILE);
