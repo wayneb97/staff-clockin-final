@@ -20,7 +20,11 @@
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
-      document.getElementById('msg').innerText = data.success ? "Login successful" : "Login failed";
+      if (data.success) {
+  window.location.href = "/admin-dashboard.html"; // ✅ Redirect to dashboard
+} else {
+  document.getElementById('msg').innerText = "Login failed";
+}
     }
   </script>
 </body>
