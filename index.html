@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Staff Clock</title></head>
+<body>
+  <h2>Enter PIN</h2>
+  <input id="pin" type="password" placeholder="Enter your PIN"><br>
+  <button onclick="clock('in')">Clock In</button>
+  <button onclick="clock('out')">Clock Out</button>
+  <p id="msg"></p>
+  <script>
+    async function clock(type) {
+      const pin = document.getElementById('pin').value;
+      const endpoint = type === 'in' ? '/api/clockin' : '/api/clockout';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      document.getElementById('msg').innerText = await res.text();
+    }
+  </script>
+</body>
+</html>
