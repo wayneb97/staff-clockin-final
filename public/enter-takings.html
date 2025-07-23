@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>Enter Takings</title></head>
+<body>
+  <h2>Enter Daily Takings</h2>
+  <form onsubmit="saveTakings(event)">
+    <label>Date: <input type="date" id="date" required></label><br>
+    <label>Amount: <input type="number" id="amount" required></label><br>
+    <button>Submit</button>
+  </form>
+  <p id="msg"></p>
+
+  <script>
+    async function saveTakings(e) {
+      e.preventDefault();
+      const date = document.getElementById('date').value;
+      const amount = document.getElementById('amount').value;
+      const res = await fetch('/api/admin/takings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, amount })
+      });
+      const result = await res.json();
+      document.getElementById('msg').innerText = result.success ? "Saved!" : "Error";
+    }
+  </script>
+</body>
+</html>
