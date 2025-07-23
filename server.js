@@ -73,11 +73,20 @@ app.post('/api/clockout', (req, res) => {
 
 // Admin Login
 app.post('/api/admin/login', (req, res) => {
-  const { email, password } = req.body;
+  const { user, password } = req.body;
   const settings = load(SETTINGS_FILE);
-  if (settings[email] && settings[email].password === password)
-    res.json({ success: true, role: settings[email].role });
-  else res.json({ success: false });
+
+  const matched = Object.entries(settings).find(([key, val]) =>
+    (val.email === user || key === user) && val.password === password
+  );
+
+  if (!matched) return res.json({ success: false });
+
+  const [key, val] = matched;
+  res.json({
+    success: true,
+    user: { name: val.name || key, email: val.email || key, role: val.role }
+  });
 });
 
 // Get all staff
