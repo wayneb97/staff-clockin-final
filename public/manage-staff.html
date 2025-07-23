@@ -58,8 +58,8 @@
       background: transparent;
       color: #00ffe7;
       text-decoration: underline;
-      cursor: pointer;
       border: none;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -73,8 +73,8 @@
     <input type="text" name="name" required>
     
     <label>PIN (4–6 digits):</label>
-    <input type="text" name="pin" required maxlength="6" pattern="\\d{4,6}">
-    
+    <input type="text" name="pin" pattern="\\d{4,6}" title="Enter a 4 to 6 digit PIN">
+
     <label>Hourly Wage (£):</label>
     <input type="number" name="wage" step="0.01" required>
     
@@ -132,22 +132,32 @@
     document.getElementById('staffForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
+
+      const index = form.editingIndex.value;
+      const pinInput = form.pin.value.trim();
+
+      // Validate PIN if changed
+      if (pinInput && !/^\d{4,6}$/.test(pinInput)) {
+        alert("PIN must be 4 to 6 digits.");
+        return;
+      }
+
+      const existing = staffList[index];
       const data = {
         name: form.name.value,
-        pin: form.pin.value,
+        pin: pinInput || existing?.pin,
         wage: parseFloat(form.wage.value),
         role: form.role.value
       };
 
-      const editingIndex = form.editingIndex.value;
-      if (editingIndex === "") {
+      if (index === "") {
         await fetch('/api/admin/staff', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
       } else {
-        data.index = parseInt(editingIndex);
+        data.index = parseInt(index);
         await fetch('/api/admin/staff/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -156,6 +166,7 @@
       }
 
       form.reset();
+      form.editingIndex.value = "";
       loadStaff();
     });
 
