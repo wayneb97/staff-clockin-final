@@ -1,0 +1,6 @@
+{
+  "admin@yourbiz.com": {
+    "password": "admin123",
+    "role": "main"
+  }
+}
