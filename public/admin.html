@@ -1,36 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Login</title>
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #00ffe7;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+    .button {
+      background: #00ffe7;
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      margin: 10px;
+      border-radius: 12px;
+      font-size: 1.2em;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ffe7;
+      font-weight: bold;
+    }
+    .button:hover {
+      background: #00e6c3;
+    }
+  </style>
 </head>
 <body>
-  <h2>Admin Login</h2>
-  <form onsubmit="login(event)">
-    <input id="email" placeholder="Email"><br>
-    <input id="password" type="password" placeholder="Password"><br>
-    <button>Login</button>
-  </form>
-  <p id="msg"></p>
-
-  <script>
-    async function login(e) {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        window.location.href = "/admin-dashboard.html";  // ✅ Redirect on success
-      } else {
-        document.getElementById('msg').innerText = "Login failed";
-      }
-    }
-  </script>
+  <h1>Admin Dashboard</h1>
+  <button class="button" onclick="location.href='manage-staff.html'">Manage Staff</button>
+  <button class="button" onclick="location.href='view-reports.html'">View Reports</button>
+  <button class="button" onclick="location.href='index.html'">Log Out</button>
 </body>
 </html>
