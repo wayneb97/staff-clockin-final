@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Staff List</title></head>
+<body>
+  <h2>All Staff</h2>
+  <ul id="staffList"></ul>
+
+  <script>
+    async function loadStaff() {
+      const res = await fetch('/api/admin/staff');
+      const staff = await res.json();
+      const list = document.getElementById('staffList');
+      staff.forEach(s => {
+        const li = document.createElement('li');
+        li.textContent = `${s.name} | PIN: ${s.pin} | £${s.wage}/hr | Role: ${s.role}`;
+        list.appendChild(li);
+      });
+    }
+    loadStaff();
+  </script>
+</body>
+</html>
