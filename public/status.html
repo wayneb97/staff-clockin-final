@@ -10,8 +10,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding-top: 40px;
       text-align: center;
     }
     .card {
@@ -20,12 +21,13 @@
       border-radius: 15px;
       box-shadow: 0 0 15px #00ffe7;
       width: 90%;
-      max-width: 400px;
+      max-width: 450px;
+      margin-bottom: 20px;
     }
     button {
-      margin-top: 20px;
+      margin: 10px;
       padding: 15px 25px;
-      font-size: 1.2em;
+      font-size: 1.1em;
       background: #00ffe7;
       color: #000;
       border: none;
@@ -36,62 +38,126 @@
     button:hover {
       background: #00e6d4;
     }
+    table {
+      margin-top: 15px;
+      width: 100%;
+      border-collapse: collapse;
+      color: #00ffe7;
+    }
+    th, td {
+      border-bottom: 1px solid #444;
+      padding: 8px;
+    }
+    th {
+      text-align: left;
+      color: #00ffe7;
+    }
+    .name-title {
+      font-size: 1.4em;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>Status</h2>
+    <div class="name-title" id="staffName">Loading...</div>
     <p id="message">Checking...</p>
     <button id="actionBtn" style="display:none" onclick="clockAction()"></button>
+    <button onclick="window.location.href='index.html'">Log Out</button>
+  </div>
+
+  <div class="card">
+    <h3>Today's Clock History</h3>
+    <table id="logTable">
+      <thead>
+        <tr><th>Clock In</th><th>Clock Out</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const pin = params.get('pin');
-    let clockedIn = false;
-    let logToday = null;
+    let staff = null;
+    let logs = [];
 
-    async function checkStatus() {
+    async function loadStatus() {
+      // Load staff info
+      const staffRes = await fetch('/api/admin/staff');
+      const staffList = await staffRes.json();
+      staff = staffList.find(s => s.pin === pin);
+      if (!staff) {
+        document.getElementById('staffName').innerText = 'PIN not found';
+        return;
+      }
+
+      document.getElementById('staffName').innerText = `Welcome, ${staff.name}`;
+
+      // Load logs
       const res = await fetch('/api/admin/logs');
-      const logs = await res.json();
+      const allLogs = await res.json();
       const today = new Date().toISOString().split('T')[0];
-      const match = logs.find(l => l.pin === pin && l.date === today);
-      logToday = match;
 
-      const msgEl = document.getElementById('message');
+      logs = allLogs.filter(l => l.pin === pin && l.date === today);
+      displayStatus();
+      displayHistory();
+    }
+
+    function displayStatus() {
       const btn = document.getElementById('actionBtn');
+      const msg = document.getElementById('message');
 
-      if (!match) {
-        msgEl.innerText = "You have not clocked in yet today.";
+      const last = logs[logs.length - 1];
+      if (!last || last.clockIn && last.clockOut) {
+        msg.innerText = "You're currently clocked out.";
         btn.innerText = "Clock In";
         btn.style.display = "inline-block";
-        clockedIn = false;
-      } else if (match && !match.clockOut) {
-        const timeIn = new Date(match.clockIn).toLocaleTimeString();
-        msgEl.innerText = `Clocked in at: ${timeIn}`;
+        btn.dataset.action = "in";
+      } else if (last && last.clockIn && !last.clockOut) {
+        msg.innerText = `Clocked in at ${new Date(last.clockIn).toLocaleTimeString()}`;
         btn.innerText = "Clock Out";
         btn.style.display = "inline-block";
-        clockedIn = true;
-      } else if (match && match.clockOut) {
-        const timeOut = new Date(match.clockOut).toLocaleTimeString();
-        msgEl.innerText = `You clocked in and out already today.\nOut: ${timeOut}`;
-        btn.style.display = "none";
+        btn.dataset.action = "out";
+      }
+    }
+
+    function displayHistory() {
+      const tbody = document.querySelector('#logTable tbody');
+      tbody.innerHTML = "";
+      if (logs.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = "<td colspan='2'>No activity yet today.</td>";
+        tbody.appendChild(row);
+      } else {
+        logs.forEach(log => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${log.clockIn ? new Date(log.clockIn).toLocaleTimeString() : '-'}</td>
+            <td>${log.clockOut ? new Date(log.clockOut).toLocaleTimeString() : '-'}</td>
+          `;
+          tbody.appendChild(row);
+        });
       }
     }
 
     async function clockAction() {
-      const endpoint = clockedIn ? '/api/clockout' : '/api/clockin';
+      const action = document.getElementById('actionBtn').dataset.action;
+      const endpoint = action === 'in' ? '/api/clockin' : '/api/clockout';
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin })
       });
+
       const txt = await res.text();
       alert(txt);
-      window.location.reload();
+      await loadStatus(); // reload
     }
 
-    checkStatus();
+    loadStatus();
   </script>
 </body>
 </html>
