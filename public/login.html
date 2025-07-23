@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Login</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #00ffe7;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px;
+      font-size: 1.1em;
+      border-radius: 8px;
+      border: none;
+    }
+    input {
+      background: #1a1a1a;
+      color: #00ffe7;
+    }
+    button {
+      background: #00ffe7;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #00e6c3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Admin Login</h2>
+  <input type="text" id="username" placeholder="Email or Username">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+
+  <script>
+    async function login() {
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ user, password: pass })
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        localStorage.setItem('adminUser', JSON.stringify(result.user));
+        window.location.href = 'admin.html';
+      } else {
+        alert("Login failed. Please try again.");
+      }
+    }
+  </script>
+</body>
+</html>
