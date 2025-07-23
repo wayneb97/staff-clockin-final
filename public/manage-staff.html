@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Staff</title>
+  <style>
+    body {
+      background: #121212;
+      color: #00ffe7;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+    }
+    label, input, select {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      font-size: 1em;
+    }
+    input, select {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #1f1f1f;
+      color: #00ffe7;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px 20px;
+      font-size: 1em;
+      background: #00ffe7;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      margin-top: 30px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid #444;
+      padding: 8px;
+      text-align: left;
+    }
+    .back-btn {
+      margin-top: 20px;
+      background: transparent;
+      color: #00ffe7;
+      text-decoration: underline;
+      cursor: pointer;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>Manage Staff & Admins</h2>
+
+  <form id="staffForm">
+    <label>Name:</label>
+    <input type="text" name="name" required>
+    
+    <label>PIN (4–6 digits):</label>
+    <input type="text" name="pin" required maxlength="6" pattern="\\d{4,6}">
+    
+    <label>Hourly Wage (£):</label>
+    <input type="number" name="wage" step="0.01" required>
+    
+    <label>Role:</label>
+    <select name="role">
+      <option value="staff">Staff</option>
+      <option value="admin">Admin</option>
+      <option value="main">Main Admin</option>
+    </select>
+
+    <button type="submit">Save Staff</button>
+  </form>
+
+  <table id="staffTable">
+    <thead>
+      <tr><th>Name</th><th>PIN</th><th>Wage</th><th>Role</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="back-btn" onclick="window.location.href='admin.html'">← Back to Dashboard</button>
+
+  <script>
+    async function loadStaff() {
+      const res = await fetch('/api/admin/staff');
+      const staff = await res.json();
+      const tbody = document.querySelector('#staffTable tbody');
+      tbody.innerHTML = '';
+      staff.forEach(member => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${member.name}</td>
+          <td>${member.pin}</td>
+          <td>£${member.wage?.toFixed(2) || '0.00'}</td>
+          <td>${member.role || 'staff'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('staffForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        pin: form.pin.value,
+        wage: parseFloat(form.wage.value),
+        role: form.role.value
+      };
+      await fetch('/api/admin/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      form.reset();
+      loadStaff();
+    });
+
+    loadStaff();
+  </script>
+</body>
+</html>
