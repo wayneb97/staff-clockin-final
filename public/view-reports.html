@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reports</title>
+  <style>
+    body {
+      background: #121212;
+      color: #00ffe7;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      margin: 0 10px;
+    }
+    input[type="date"], input[type="number"] {
+      padding: 8px;
+      margin: 10px;
+      background: #1c1c1c;
+      color: #00ffe7;
+      border: none;
+      border-radius: 6px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #00ffe7;
+      border: none;
+      border-radius: 6px;
+      color: #000;
+      font-weight: bold;
+      margin: 10px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      text-align: left;
+    }
+    .back-btn {
+      margin-top: 20px;
+      background: transparent;
+      color: #00ffe7;
+      text-decoration: underline;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Reports & Labour Summary</h2>
+  
+  <label>Start Date:</label>
+  <input type="date" id="start">
+  
+  <label>End Date:</label>
+  <input type="date" id="end">
+  
+  <button onclick="loadReports()">View Reports</button>
+
+  <div id="reportContainer"></div>
+
+  <button class="back-btn" onclick="window.location.href='admin.html'">← Back to Dashboard</button>
+
+  <script>
+    async function loadReports() {
+      const start = document.getElementById('start').value;
+      const end = document.getElementById('end').value;
+      if (!start || !end) return alert("Select both dates.");
+
+      const res = await fetch('/api/admin/logs');
+      const logs = await res.json();
+      const settings = await fetch('/api/admin/settings').then(r => r.json());
+      const staff = await fetch('/api/admin/staff').then(r => r.json());
+
+      const range = logs.filter(l => l.date >= start && l.date <= end && l.clockIn && l.clockOut);
+
+      const days = {};
+      for (const log of range) {
+        const date = log.date;
+        const duration = (new Date(log.clockOut) - new Date(log.clockIn)) / (1000 * 60 * 60); // in hours
+        if (!days[date]) days[date] = [];
+        days[date].push({
+          pin: log.pin,
+          name: log.name,
+          hours: duration,
+        });
+      }
+
+      const container = document.getElementById('reportContainer');
+      container.innerHTML = '';
+
+      Object.entries(days).forEach(([date, entries]) => {
+        let totalHours = 0;
+        let totalPay = 0;
+        const rows = entries.map(entry => {
+          const user = staff.find(s => s.pin === entry.pin);
+          const wage = user?.wage || 0;
+          const pay = entry.hours * wage;
+          totalHours += entry.hours;
+          totalPay += pay;
+          return `<tr><td>${entry.name}</td><td>${entry.hours.toFixed(2)} hrs</td><td>£${pay.toFixed(2)}</td></tr>`;
+        }).join('');
+
+        const takings = settings?.takings?.[date] || 0;
+        const labourPct = takings ? ((totalPay / takings) * 100).toFixed(1) : '—';
+
+        container.innerHTML += `
+          <h3>${date}</h3>
+          <p>Total Hours: ${totalHours.toFixed(2)} | Total Wages: £${totalPay.toFixed(2)} | Takings: £${takings} | Labour: ${labourPct}%</p>
+          <table>
+            <thead><tr><th>Staff</th><th>Hours</th><th>Wage</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <label>Enter Takings:</label>
+          <input type="number" min="0" id="takings-${date}" value="${takings}">
+          <button onclick="saveTakings('${date}')">Save</button>
+          <hr/>
+        `;
+      });
+    }
+
+    async function saveTakings(date) {
+      const value = parseFloat(document.getElementById(`takings-${date}`).value);
+      await fetch('/api/admin/takings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, amount: value })
+      });
+      loadReports();
+    }
+  </script>
+</body>
+</html>
