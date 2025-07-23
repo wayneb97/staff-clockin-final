@@ -29,31 +29,49 @@ function getToday() {
   return dayjs().format('YYYY-MM-DD');
 }
 
+// Clock In - allow multiple sessions
 app.post('/api/clockin', (req, res) => {
   const { pin } = req.body;
   const staff = load(DATA_FILE);
   const logs = load(LOGS_FILE);
   const user = staff.find(s => s.pin === pin);
   if (!user) return res.status(403).send('Invalid PIN');
-  const existing = logs.find(l => l.pin === pin && l.date === getToday());
-  if (existing && existing.clockIn && !existing.clockOut)
-    return res.status(400).send('Already clocked in. Please clock out first.');
-  logs.push({ pin, name: user.name, date: getToday(), clockIn: new Date().toISOString(), break: 0 });
+
+  // Prevent multiple clock-ins without clocking out first
+  const today = getToday();
+  const openSession = logs.find(l => l.pin === pin && l.date === today && !l.clockOut);
+  if (openSession) return res.status(400).send('Already clocked in. Please clock out first.');
+
+  logs.push({
+    pin,
+    name: user.name,
+    date: today,
+    clockIn: new Date().toISOString(),
+    break: 0
+  });
+
   save(LOGS_FILE, logs);
   res.send('Clocked in successfully.');
 });
 
+// Clock Out - closes the latest open session
 app.post('/api/clockout', (req, res) => {
   const { pin } = req.body;
   const logs = load(LOGS_FILE);
-  const log = logs.find(l => l.pin === pin && l.date === getToday());
-  if (!log || !log.clockIn || log.clockOut)
-    return res.status(400).send('You must clock in first or already clocked out.');
-  log.clockOut = new Date().toISOString();
+  const today = getToday();
+
+  const session = logs
+    .filter(l => l.pin === pin && l.date === today && l.clockIn && !l.clockOut)
+    .pop(); // get the latest open one
+
+  if (!session) return res.status(400).send('No active session to clock out from.');
+
+  session.clockOut = new Date().toISOString();
   save(LOGS_FILE, logs);
   res.send('Clocked out successfully.');
 });
 
+// Admin Login
 app.post('/api/admin/login', (req, res) => {
   const { email, password } = req.body;
   const settings = load(SETTINGS_FILE);
@@ -62,11 +80,13 @@ app.post('/api/admin/login', (req, res) => {
   else res.json({ success: false });
 });
 
+// Get all staff
 app.get('/api/admin/staff', (req, res) => {
   const staff = load(DATA_FILE);
   res.json(staff);
 });
 
+// Add a new staff
 app.post('/api/admin/staff', (req, res) => {
   const staff = load(DATA_FILE);
   staff.push(req.body);
@@ -74,6 +94,7 @@ app.post('/api/admin/staff', (req, res) => {
   res.json({ success: true });
 });
 
+// Add or update takings
 app.post('/api/admin/takings', (req, res) => {
   const { date, amount } = req.body;
   const settings = load(SETTINGS_FILE);
@@ -83,11 +104,13 @@ app.post('/api/admin/takings', (req, res) => {
   res.json({ success: true });
 });
 
+// Get all logs
 app.get('/api/admin/logs', (req, res) => {
   const logs = load(LOGS_FILE);
   res.json(logs);
 });
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
