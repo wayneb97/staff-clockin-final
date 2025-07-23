@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Status</title>
+  <style>
+    body {
+      background: #121212;
+      color: #00ffe7;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .card {
+      background: #1c1c1c;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 15px #00ffe7;
+      width: 90%;
+      max-width: 400px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 15px 25px;
+      font-size: 1.2em;
+      background: #00ffe7;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #00e6d4;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Status</h2>
+    <p id="message">Checking...</p>
+    <button id="actionBtn" style="display:none" onclick="clockAction()"></button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const pin = params.get('pin');
+    let clockedIn = false;
+    let logToday = null;
+
+    async function checkStatus() {
+      const res = await fetch('/api/admin/logs');
+      const logs = await res.json();
+      const today = new Date().toISOString().split('T')[0];
+      const match = logs.find(l => l.pin === pin && l.date === today);
+      logToday = match;
+
+      const msgEl = document.getElementById('message');
+      const btn = document.getElementById('actionBtn');
+
+      if (!match) {
+        msgEl.innerText = "You have not clocked in yet today.";
+        btn.innerText = "Clock In";
+        btn.style.display = "inline-block";
+        clockedIn = false;
+      } else if (match && !match.clockOut) {
+        const timeIn = new Date(match.clockIn).toLocaleTimeString();
+        msgEl.innerText = `Clocked in at: ${timeIn}`;
+        btn.innerText = "Clock Out";
+        btn.style.display = "inline-block";
+        clockedIn = true;
+      } else if (match && match.clockOut) {
+        const timeOut = new Date(match.clockOut).toLocaleTimeString();
+        msgEl.innerText = `You clocked in and out already today.\nOut: ${timeOut}`;
+        btn.style.display = "none";
+      }
+    }
+
+    async function clockAction() {
+      const endpoint = clockedIn ? '/api/clockout' : '/api/clockin';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      const txt = await res.text();
+      alert(txt);
+      window.location.reload();
+    }
+
+    checkStatus();
+  </script>
+</body>
+</html>
